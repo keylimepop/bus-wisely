@@ -1,115 +1,95 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+"use client";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { useEffect, useState } from "react";
+import axios from "axios";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+type Stop = {
+  stop_id: string;
+  stop_name: string;
+  stop_lat: number;
+  stop_lon: number;
+};
+
+type Arrival = {
+  trip: string;
+  arrivals: number[];
+};
 
 export default function Home() {
+  const [location, setLocation] = useState<{ lat: number; lon: number } | null>(
+    null
+  );
+  const [stops, setStops] = useState<Stop[]>([]);
+  const [buses, setBuses] = useState<Record<string, Arrival[]>>({});
+
+  // Get user location
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      (err) => console.error(err)
+    );
+  }, []);
+
+  // Fetch nearest stops when we have location
+  useEffect(() => {
+    if (!location) return;
+
+    axios
+      .get(`/api/stops?lat=${location.lat}&lon=${location.lon}`)
+      .then((res) => setStops(res.data.slice(0, 15))) // top 15 stops
+      .catch(console.error);
+  }, [location]);
+
+  // Fetch arrivals for each stop
+  useEffect(() => {
+    stops.forEach((stop) => {
+      axios
+        .get(`/api/arrivals?stopNo=${stop.stop_id}`)
+        .then((res) =>
+          setBuses((prev) => ({ ...prev, [stop.stop_id]: res.data }))
+        )
+        .catch(console.error);
+    });
+  }, [stops]);
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <main className="p-6">
+      <h1 className="text-2xl font-bold mb-4">🚍 Nearby Bus Times</h1>
+
+      {!location && <p>Getting your location...</p>}
+
+      {stops.map((stop) => (
+        <div key={stop.stop_id} className="mb-6 border-b pb-2">
+          <h2 className="font-semibold">{stop.stop_name}</h2>
+          <table className="w-full border mt-2 table-fixed">
+            <thead>
+              <tr>
+                <th className="border p-2 text-left w-1/2">Bus</th>
+                <th className="border p-2 text-left w-1/2">Next Arrivals (min)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {buses[stop.stop_id] ? (
+                buses[stop.stop_id].map((arrival) => (
+                  <tr key={arrival.trip}>
+                    <td className="border p-2 w-1/2">{arrival.trip}</td>
+                    <td className="border p-2 w-1/2">
+                      {arrival.arrivals.slice(0, 3).join(", ")}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={2} className="border p-2 text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      ))}
+    </main>
   );
 }

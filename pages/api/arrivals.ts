@@ -2,27 +2,19 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import * as GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import routesData from "../../data/routes.json";
 import tripsData from "../../data/trips.json";
-
-type Route = {
-  route_id: string;
-  route_short_name: string;
-};
 
 type Trip = {
   trip_id: string;
   route_id: string;
+  trip_headsign: string;
 };
 
-// Map tripId -> route_short_name
-const tripToRoute: Record<string, string> = {};
-const routes: Route[] = routesData as Route[];
+// Lookup: tripId -> headsign
 const trips: Trip[] = tripsData as Trip[];
-
+const tripToHeadsign: Record<string, string> = {};
 trips.forEach((t) => {
-  const route = routes.find((r) => r.route_id === t.route_id);
-  if (route) tripToRoute[t.trip_id] = route.route_short_name;
+  tripToHeadsign[t.trip_id] = t.trip_headsign;
 });
 
 export default async function handler(
@@ -36,21 +28,26 @@ export default async function handler(
   if (!apiKey) return res.status(500).json({ error: "Missing API key" });
 
   try {
+    // 1. Fetch GTFS realtime feed
     const response = await axios.get(
       `https://gtfsapi.translink.ca/v3/gtfsrealtime?apikey=${apiKey}`,
       { responseType: "arraybuffer" }
     );
 
+    // 2. Decode
     const feed = GtfsRealtimeBindings.transit_realtime.FeedMessage.decode(
       new Uint8Array(response.data)
     );
 
-    // Group arrivals by route
-    const arrivalsByRoute: Record<string, number[]> = {};
+    // 3. Group arrivals by trip headsign
+    const arrivalsByHeadsign: Record<string, number[]> = {};
 
     feed.entity.forEach((entity: any) => {
       const tripUpdate = entity.tripUpdate;
       if (!tripUpdate || !tripUpdate.stopTimeUpdate) return;
+
+      const tripId = tripUpdate.trip?.tripId || "";
+      const headsign = tripToHeadsign[tripId] || "Unknown";
 
       tripUpdate.stopTimeUpdate.forEach((stu: any) => {
         if (stu.stopId === stopNo && stu.arrival?.time) {
@@ -59,24 +56,21 @@ export default async function handler(
             0,
             Math.round((arrivalMs - Date.now()) / 60000)
           );
-
-          const routeShortName = tripUpdate.trip?.tripId
-            ? tripToRoute[tripUpdate.trip.tripId] || "Unknown"
-            : "Unknown";
-
-          if (!arrivalsByRoute[routeShortName]) arrivalsByRoute[routeShortName] = [];
-          arrivalsByRoute[routeShortName].push(inMinutes);
+          if (!arrivalsByHeadsign[headsign]) arrivalsByHeadsign[headsign] = [];
+          arrivalsByHeadsign[headsign].push(inMinutes);
         }
       });
     });
 
-    // Sort each route's arrivals and keep next 3
-    for (const route in arrivalsByRoute) {
-      arrivalsByRoute[route].sort((a, b) => a - b);
-      arrivalsByRoute[route] = arrivalsByRoute[route].slice(0, 3);
-    }
+    // 4. Sort and trim (3 arrivals per trip headsign)
+    const result = Object.entries(arrivalsByHeadsign).map(
+      ([headsign, times]) => ({
+        trip: headsign,
+        arrivals: times.sort((a, b) => a - b).slice(0, 100),
+      })
+    );
 
-    res.status(200).json(arrivalsByRoute);
+    res.status(200).json(result);
   } catch (err: any) {
     console.error("Error fetching GTFS Realtime:", err);
     res.status(500).json({ error: "Failed to get realtime data" });
