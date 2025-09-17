@@ -22,6 +22,9 @@ export default function Home() {
   const [stops, setStops] = useState<Stop[]>([]);
   const [buses, setBuses] = useState<Record<string, Arrival[]>>({});
 
+  // Track stop name prefixes that have already been rendered
+  const renderedStopPrefixes = new Set<string>();
+
   // Get user location
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -59,37 +62,48 @@ export default function Home() {
 
       {!location && <p>Getting your location...</p>}
 
-      {stops.map((stop) => (
-        <div key={stop.stop_id} className="mb-6 border-b pb-2">
-          <h2 className="font-semibold">{stop.stop_name}</h2>
-          <table className="w-full border mt-2 table-fixed">
-            <thead>
-              <tr>
-                <th className="border p-2 text-left w-1/2">Bus</th>
-                <th className="border p-2 text-left w-1/2">Next Arrivals (min)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {buses[stop.stop_id] ? (
-                buses[stop.stop_id].map((arrival) => (
-                  <tr key={arrival.trip}>
-                    <td className="border p-2 w-1/2">{arrival.trip}</td>
-                    <td className="border p-2 w-1/2">
-                      {arrival.arrivals.slice(0, 3).join(", ")}
+      {stops.map((stop) => {
+        // Extract prefix (everything before @, trim whitespace)
+        const prefix = stop.stop_name.split("@")[0].trim();
+
+        // Skip if we've already rendered this prefix
+        if (renderedStopPrefixes.has(prefix)) return null;
+        renderedStopPrefixes.add(prefix);
+
+        return (
+          <div key={stop.stop_id} className="mb-6 border-b pb-2">
+            <h2 className="font-semibold">{stop.stop_name}</h2>
+            <table className="w-full border mt-2 table-fixed">
+              <thead>
+                <tr>
+                  <th className="border p-2 text-left w-1/2">Bus</th>
+                  <th className="border p-2 text-left w-1/2">
+                    Next Arrivals (min)
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {buses[stop.stop_id] ? (
+                  buses[stop.stop_id].map((arrival) => (
+                    <tr key={arrival.trip}>
+                      <td className="border p-2 w-1/2">{arrival.trip}</td>
+                      <td className="border p-2 w-1/2">
+                        {arrival.arrivals.slice(0, 3).join(", ")}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={2} className="border p-2 text-gray-500">
+                      Loading...
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={2} className="border p-2 text-gray-500">
-                    Loading...
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      ))}
+                )}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </main>
   );
 }
