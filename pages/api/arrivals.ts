@@ -2,7 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import axios from "axios";
 import * as GtfsRealtimeBindings from "gtfs-realtime-bindings";
-import tripsData from "../../data/trips.json";
 
 type Trip = {
   trip_id: string;
@@ -10,12 +9,13 @@ type Trip = {
   trip_headsign: string;
 };
 
-// Lookup: tripId -> headsign
-const trips: Trip[] = tripsData as Trip[];
-const tripToHeadsign: Record<string, string> = {};
-trips.forEach((t) => {
-  tripToHeadsign[t.trip_id] = t.trip_headsign;
-});
+// Helper to fetch trips.json from GitHub
+async function fetchTrips(): Promise<Trip[]> {
+  const url =
+    "https://raw.githubusercontent.com/keylimepop/bus-wisely-data/main/data/trips.json";
+  const response = await axios.get(url);
+  return response.data as Trip[];
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,6 +28,13 @@ export default async function handler(
   if (!apiKey) return res.status(500).json({ error: "Missing API key" });
 
   try {
+    // Fetch trips from GitHub
+    const trips: Trip[] = await fetchTrips();
+    const tripToHeadsign: Record<string, string> = {};
+    trips.forEach((t) => {
+      tripToHeadsign[t.trip_id] = t.trip_headsign;
+    });
+
     // 1. Fetch GTFS realtime feed
     const response = await axios.get(
       `https://gtfsapi.translink.ca/v3/gtfsrealtime?apikey=${apiKey}`,
