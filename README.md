@@ -10,6 +10,11 @@ I was motivated to build Bus Wisely because I am blessed with three bus routes t
 - Display of upcoming arrivals for multiple stops and routes
 - Built with Next.js (Pages Router), Tailwind CSS, and TypeScript
 
+## Planned Features
+- User favourite stops and routes
+- Search by any location; map integration
+- Dark mode
+
 ## Tech Stack
 - **Frontend**: Next.js, React, Tailwind CSS
 - **Backend**: Next.js API routes, Axios
