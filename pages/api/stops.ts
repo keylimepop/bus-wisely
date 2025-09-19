@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextApiRequest, NextApiResponse } from "next";
-import stopsData from "../../data/stops.json";
+import axios from "axios";
 
 type Stop = {
   stop_id: string;
@@ -9,7 +9,7 @@ type Stop = {
   stop_lon: number;
 };
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { lat, lon } = req.query;
   if (!lat || !lon) {
     return res.status(400).json({ error: "Missing lat/lon" });
@@ -17,6 +17,16 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   const userLat = parseFloat(lat as string);
   const userLon = parseFloat(lon as string);
+
+  // Fetch stops.json from GitHub
+  const stopsUrl = "https://raw.githubusercontent.com/keylimepop/bus-wisely-data/main/data/stops.json";
+  let stopsData: any[];
+  try {
+    const stopsRes = await axios.get(stopsUrl);
+    stopsData = stopsRes.data;
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch stops.json" });
+  }
 
   // Haversine distance function
   function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
