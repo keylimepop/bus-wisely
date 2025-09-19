@@ -42,3 +42,6 @@ next-env.d.ts
 
 # GTFS JSON files
 /data/*.json
+
+# Mirror copy
+bus-wisely-mirror/
