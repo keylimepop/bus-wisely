@@ -22,26 +22,23 @@ export default function Home() {
   const [stops, setStops] = useState<Stop[]>([]);
   const [buses, setBuses] = useState<Record<string, Arrival[]>>({});
 
-  // Track stop name prefixes that have already been rendered
-  const renderedStopPrefixes = new Set<string>();
-
   // Get user location
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) =>
         setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      (err) => console.error(err)
+      (err) => console.error("Geolocation error:", err)
     );
   }, []);
 
-  // Fetch nearest stops when we have location
+  // Fetch nearest stops once location is available
   useEffect(() => {
     if (!location) return;
 
     axios
       .get(`/api/stops?lat=${location.lat}&lon=${location.lon}`)
-      .then((res) => setStops(res.data.slice(0, 15))) // top 15 stops
-      .catch(console.error);
+      .then((res) => setStops(res.data)) // backend already limits to 15 unique stops
+      .catch((err) => console.error("Error fetching stops:", err));
   }, [location]);
 
   // Fetch arrivals for each stop
@@ -52,58 +49,49 @@ export default function Home() {
         .then((res) =>
           setBuses((prev) => ({ ...prev, [stop.stop_id]: res.data }))
         )
-        .catch(console.error);
+        .catch((err) =>
+          console.error(`Error fetching arrivals for ${stop.stop_id}:`, err)
+        );
     });
   }, [stops]);
 
   return (
     <main className="p-6">
-      <h1 className="text-2xl font-bold mb-4">🚍 Nearby Bus Times</h1>
+      <h1 className="text-2xl font-bold mb-4">Bus Wisely</h1>
 
       {!location && <p>Getting your location...</p>}
 
-      {stops.map((stop) => {
-        // Extract prefix (everything before @, trim whitespace)
-        const prefix = stop.stop_name.split("@")[0].trim();
-
-        // Skip if we've already rendered this prefix
-        if (renderedStopPrefixes.has(prefix)) return null;
-        renderedStopPrefixes.add(prefix);
-
-        return (
-          <div key={stop.stop_id} className="mb-6 border-b pb-2">
-            <h2 className="font-semibold">{stop.stop_name}</h2>
-            <table className="w-full border mt-2 table-fixed">
-              <thead>
-                <tr>
-                  <th className="border p-2 text-left w-1/2">Bus</th>
-                  <th className="border p-2 text-left w-1/2">
-                    Next Arrivals (min)
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {buses[stop.stop_id] ? (
-                  buses[stop.stop_id].map((arrival) => (
-                    <tr key={arrival.trip}>
-                      <td className="border p-2 w-1/2">{arrival.trip}</td>
-                      <td className="border p-2 w-1/2">
-                        {arrival.arrivals.slice(0, 3).join(", ")}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={2} className="border p-2 text-gray-500">
-                      Loading...
+      {stops.map((stop) => (
+        <div key={stop.stop_id} className="mb-6">
+          <h2 className="font-semibold">{stop.stop_name}</h2>
+          <table className="w-full border mt-2 table-fixed">
+            <thead>
+              <tr>
+                <th className="border p-2 text-left w-1/2">Bus</th>
+                <th className="border p-2 text-left w-1/2">Next Arrivals (min)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {buses[stop.stop_id] ? (
+                buses[stop.stop_id].map((arrival) => (
+                  <tr key={arrival.trip}>
+                    <td className="border p-2 w-1/2">{arrival.trip}</td>
+                    <td className="border p-2 w-1/2">
+                      {arrival.arrivals.slice(0, 3).join(", ")}
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        );
-      })}
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={2} className="border p-2 text-gray-500">
+                    Loading...
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      ))}
     </main>
   );
 }
