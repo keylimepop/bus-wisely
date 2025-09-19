@@ -1,4 +1,4 @@
-# Bus Wisely: for more informed bus-riding in Vancouver, BC
+# Bus Wisely
 
 Bus Wisely is a Next.js + Tailwind app that displays upcoming bus arrivals at the nearest stops to the user. TransLink’s GTFS Realtime and static feeds are used, combining location data with live arrival predictions.
 
