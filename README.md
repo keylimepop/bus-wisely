@@ -11,6 +11,7 @@ I was motivated to build Bus Wisely because I am blessed with three bus routes t
 - Built with Next.js (Pages Router), Tailwind CSS, and TypeScript
 
 ## Planned Features
+- Performance optimisation via caching and reducing data payloads
 - User favourite stops and routes
 - Search by any location; map integration
 - Dark mode
