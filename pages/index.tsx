@@ -56,36 +56,36 @@ export default function Home() {
   }, [stops]);
 
   return (
-    <main className="p-6">
-      <h1 className="text-3xl font-bold mb-4">Bus Wisely: is it time to dash?</h1>
+    <main className="p-6 bg-indigo-50 min-h-screen">
+      <h1 className="text-4xl font-bold mb-4 text-indigo-700">Bus Wisely: is it time to dash?</h1>
 
       {!location && <p>Getting your location...</p>}
 
       {stops.map((stop) => (
         <div key={stop.stop_id} className="mb-6">
           <h2 className="font-bold mb-2">
-            <span className="bg-white border-2 border-indigo-400 px-3 py-1 rounded-full inline-block">
+            <span className="bg-white border-2 border-indigo-400 px-3 py-1 rounded-full inline-block text-indigo-900">
               {stop.stop_name}
             </span>
           </h2>
           <table className="w-full mt-2 table-fixed border-separate border-spacing-0">
             <thead>
-              <tr className="bg-indigo-900">
-                <th className="p-2 text-left w-1/2 font-bold text-white border-b-2 border-indigo-400">Bus</th>
-                <th className="p-2 text-left w-1/2 font-bold text-white border-b-2 border-indigo-400">Next Arrivals (min)</th>
+              <tr className="bg-indigo-400">
+                <th className="p-2 text-left w-1/2 font-bold text-white border-b-4 border-indigo-600">Bus</th>
+                <th className="p-2 text-left w-1/2 font-bold text-white border-b-4 border-indigo-600">Next Arrivals (min)</th>
               </tr>
             </thead>
             <tbody>
               {buses[stop.stop_id] ? (
                 buses[stop.stop_id].map((arrival) => (
-                  <tr key={arrival.trip} className="bg-indigo-50">
-                    <td className="p-2 w-1/2 border-b border-indigo-100 border-r border-indigo-100">{arrival.trip}</td>
-                    <td className="p-2 w-1/2 border-b border-indigo-100">{arrival.arrivals.slice(0, 3).join(", ")}</td>
+                  <tr key={arrival.trip} className="bg-white">
+                    <td className="p-2 w-1/2 border-b-2 border-indigo-100 border-r-2 border-indigo-100">{arrival.trip}</td>
+                    <td className="p-2 w-1/2 border-b-2 border-indigo-100">{arrival.arrivals.slice(0, 3).join(", ")}</td>
                   </tr>
                 ))
               ) : (
-                <tr className="bg-indigo-50">
-                  <td colSpan={2} className="p-2 text-gray-500 border-b border-indigo-100 border-r border-indigo-100">
+                <tr className="bg-white">
+                  <td colSpan={2} className="p-2 text-gray-400 border-b-2 border-indigo-100 border-r-2 border-indigo-100">
                     Loading...
                   </td>
                 </tr>
