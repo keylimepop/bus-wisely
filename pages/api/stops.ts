@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { NextApiRequest, NextApiResponse } from "next";
 import stopsData from "../../data/stops.json";
 
@@ -30,8 +31,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
   }
 
-  // Sort stops by distance to user
-  const sortedStops: Stop[] = (stopsData as Stop[]).sort((a, b) => {
+  // Convert stop_lat and stop_lon to numbers and sort stops by distance to user
+  const stops: Stop[] = (stopsData as any[]).map(stop => ({
+    stop_id: stop.stop_id,
+    stop_name: stop.stop_name,
+    stop_lat: Number(stop.stop_lat),
+    stop_lon: Number(stop.stop_lon),
+  }));
+
+  const sortedStops: Stop[] = stops.sort((a, b) => {
     const da = haversine(userLat, userLon, a.stop_lat, a.stop_lon);
     const db = haversine(userLat, userLon, b.stop_lat, b.stop_lon);
     return da - db;
@@ -47,7 +55,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       seenPrefixes.add(prefix);
       uniqueStops.push(stop);
     }
-    if (uniqueStops.length >= 15) break; // stop once we have 15 unique stops
+    if (uniqueStops.length >= 15) break; // stop after getting 15 unique prefix stops
   }
 
   res.status(200).json(uniqueStops);
